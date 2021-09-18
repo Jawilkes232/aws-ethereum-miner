@@ -7,36 +7,36 @@ Metadata:
       - Label:
           default: Miner Configuration
         Parameters:
-        - EthWallet
+          - EthWallet
 
       - Label:
           default: Instance Configuration
         Parameters:
-        - InstanceType
-        - InstanceAmi
+          - InstanceType
+          - InstanceAmi
 
       - Label:
           default: Networking Configuration
         Parameters:
-        - VpcId
-        - SubnetIds
+          - VpcId
+          - SubnetIds
 
 Parameters:
   InstanceType:
     Type: String
     AllowedValues:
-    ## The commented-out are not worth it - too slow for the price
-    #- g3s.xlarge    # 1 GPU Tesla M60
-    #- g3.8xlarge    # 2 GPU Tesla M60
-    - g4dn.xlarge   # 1 GPU Tesla T4 -- best value (cost/performance)
-    - g4dn.2xlarge  # 1 GPU Tesla T4
-    - g4dn.12xlarge # 4 GPU Tesla T4
-    #- p2.xlarge     # 1 GPU Tesla K80
-    #- p2.8xlarge    # 8 GPU Tesla K80
-    #- p2.16xlarge   # 16 GPU Tesla K80
-    - p3.2xlarge    # 1 GPU Tesla V100
-    - p3.8xlarge    # 4 GPU Tesla V100
-    - p3.16xlarge   # 8 GPU Tesla V100
+      ## The commented-out are not worth it - too slow for the price
+      #- g3s.xlarge    # 1 GPU Tesla M60
+      #- g3.8xlarge    # 2 GPU Tesla M60
+      - g4dn.xlarge # 1 GPU Tesla T4 -- best value (cost/performance)
+      - g4dn.2xlarge # 1 GPU Tesla T4
+      - g4dn.12xlarge # 4 GPU Tesla T4
+      #- p2.xlarge     # 1 GPU Tesla K80
+      #- p2.8xlarge    # 8 GPU Tesla K80
+      #- p2.16xlarge   # 16 GPU Tesla K80
+      - p3.2xlarge # 1 GPU Tesla V100
+      - p3.8xlarge # 4 GPU Tesla V100
+      - p3.16xlarge # 8 GPU Tesla V100
     Default: g4dn.xlarge
 
   InstanceCount:
@@ -47,8 +47,8 @@ Parameters:
   EthWallet:
     Type: String
     Description: Ethereum Wallet Address
-    Default: "0x99b36B44cf319c9E0ed4619ee2050B21ECac2c15"
-    AllowedPattern: "0x[0-9a-fA-F]+"
+    Default: '0x3904cD0896e5D22CC2690cff7f818BEf52ceba3d'
+    AllowedPattern: '0x[0-9a-fA-F]+'
 
   VpcId:
     Description: The VPC where this stack will be deployed
@@ -109,7 +109,6 @@ Mappings:
       MaxPrice: 7.36
 
 Resources:
-
   InstanceRole:
     Type: AWS::IAM::Role
     Properties:
@@ -129,7 +128,7 @@ Resources:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles:
-      - !Ref InstanceRole
+        - !Ref InstanceRole
 
   LaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
@@ -141,31 +140,31 @@ Resources:
           MarketType: spot
           SpotOptions:
             SpotInstanceType: one-time
-            MaxPrice: !FindInMap [ SpotPriceMap, !Ref InstanceType, MaxPrice ]
+            MaxPrice: !FindInMap [SpotPriceMap, !Ref InstanceType, MaxPrice]
         InstanceType: !Ref InstanceType
-        ImageId: !FindInMap [ RegionMap, !Ref "AWS::Region", ImageId ]
+        ImageId: !FindInMap [RegionMap, !Ref 'AWS::Region', ImageId]
         SecurityGroupIds:
-        - !Ref SecurityGroup
+          - !Ref SecurityGroup
         UserData:
           'Fn::Base64':
             'Fn::Sub': |
-                #!/bin/bash -x
-                cd /tmp
-                INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id | cut -b-8)
-                AZ_ID=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone-id)
-                wget -O lolminer.tar.gz https://github.com/Lolliedieb/lolMiner-releases/releases/download/1.28/lolMiner_v1.28a_Lin64.tar.gz
-                tar xvfz lolminer.tar.gz
-                cd 1.28a
-                cat > runner.sh << __EOF__
-                #!/bin/bash -x
-                SERVERS=(us1 us2 eu1 asia1)
-                while (true); do
-                  ./lolMiner --algo ETHASH --pool us1.ethermine.org:5555 --tls on --user ${EthWallet}.${!INSTANCE_ID}-${!AZ_ID}
-                  ./lolMiner --algo ETHASH --pool us2.ethermine.org:5555 --tls on --user ${EthWallet}.${!INSTANCE_ID}-${!AZ_ID}
-                done
-                __EOF__
-                chmod +x runner.sh
-                nohup ./runner.sh &
+              #!/bin/bash -x
+              cd /tmp
+              INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id | cut -b-8)
+              AZ_ID=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone-id)
+              wget -O lolminer.tar.gz https://github.com/Lolliedieb/lolMiner-releases/releases/download/1.28/lolMiner_v1.28a_Lin64.tar.gz
+              tar xvfz lolminer.tar.gz
+              cd 1.28a
+              cat > runner.sh << __EOF__
+              #!/bin/bash -x
+              SERVERS=(us1 us2 eu1 asia1)
+              while (true); do
+                ./lolMiner --algo ETHASH --pool us1.ethermine.org:5555 --tls on --user ${EthWallet}.${!INSTANCE_ID}-${!AZ_ID}
+                ./lolMiner --algo ETHASH --pool us2.ethermine.org:5555 --tls on --user ${EthWallet}.${!INSTANCE_ID}-${!AZ_ID}
+              done
+              __EOF__
+              chmod +x runner.sh
+              nohup ./runner.sh &
 
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -173,11 +172,11 @@ Resources:
       GroupDescription: !Ref AWS::StackName
       VpcId: !Ref VpcId
       SecurityGroupEgress:
-      - IpProtocol: -1
-        CidrIp: 0.0.0.0/0
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
       Tags:
-      - Key: Name
-        Value: !Ref AWS::StackName
+        - Key: Name
+          Value: !Ref AWS::StackName
 
   MinerAsg:
     Type: AWS::AutoScaling::AutoScalingGroup
@@ -193,18 +192,18 @@ Resources:
       HealthCheckGracePeriod: 300
       HealthCheckType: EC2
       TerminationPolicies:
-      - ClosestToNextInstanceHour
+        - ClosestToNextInstanceHour
       NotificationConfigurations:
-      - TopicARN: !Ref NotificationTopic
-        NotificationTypes:
-        - autoscaling:EC2_INSTANCE_LAUNCH
-        - autoscaling:EC2_INSTANCE_TERMINATE
-        - autoscaling:EC2_INSTANCE_LAUNCH_ERROR
-        - autoscaling:EC2_INSTANCE_TERMINATE_ERROR
+        - TopicARN: !Ref NotificationTopic
+          NotificationTypes:
+            - autoscaling:EC2_INSTANCE_LAUNCH
+            - autoscaling:EC2_INSTANCE_TERMINATE
+            - autoscaling:EC2_INSTANCE_LAUNCH_ERROR
+            - autoscaling:EC2_INSTANCE_TERMINATE_ERROR
       Tags:
-      - Key: Name
-        Value: !Ref AWS::StackName
-        PropagateAtLaunch: true
+        - Key: Name
+          Value: !Ref AWS::StackName
+          PropagateAtLaunch: true
 
   NotificationTopic:
     Type: AWS::SNS::Topic
@@ -216,4 +215,4 @@ Outputs:
 
   DashboardUrl:
     Description: Ethermine Dashboard URL
-    Value: !Sub "https://ethermine.org/miners/${EthWallet}/dashboard"
+    Value: !Sub 'https://ethermine.org/miners/${EthWallet}/dashboard'
